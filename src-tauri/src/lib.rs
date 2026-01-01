@@ -57,32 +57,33 @@ fn get_all_vehicles(state: State<AppState>) -> Result<Vec<Vehicle>, String> {
 fn add_fuel_record(
     state: State<AppState>,
     vehicle_id: i64,
-    fuel_type: String,
-    price_per_liter: f64,
-    amount: f64,
-    liters: f64,
+    _date: String,
     mileage: f64,
+    volume: f64,
+    price: f64,
+    total_cost: f64,
+    fuel_type: String,
     is_full_tank: bool,
-    note: Option<String>,
+    notes: String,
 ) -> Result<i64, String> {
-    let fuel_type = match fuel_type.as_str() {
-        "Gasoline92" => FuelType::Gasoline92,
-        "Gasoline95" => FuelType::Gasoline95,
-        "Gasoline98" => FuelType::Gasoline98,
-        "Diesel" => FuelType::Diesel,
-        _ => return Err("Invalid fuel type".to_string()),
+    let fuel_type_enum = match fuel_type.as_str() {
+        "92" => FuelType::Gasoline92,
+        "95" => FuelType::Gasoline95,
+        "98" => FuelType::Gasoline98,
+        "0" => FuelType::Diesel,
+        _ => FuelType::Gasoline92,
     };
 
     let record = FuelRecord {
         id: None,
         vehicle_id,
-        fuel_type,
-        price_per_liter,
-        amount,
-        liters,
+        fuel_type: fuel_type_enum,
+        price_per_liter: price,
+        amount: total_cost,
+        liters: volume,
         mileage,
         is_full_tank,
-        note,
+        note: if notes.is_empty() { None } else { Some(notes) },
         created_at: Utc::now(),
     };
 
