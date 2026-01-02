@@ -54,6 +54,35 @@ fn get_all_vehicles(state: State<AppState>) -> Result<Vec<Vehicle>, String> {
 }
 
 #[tauri::command]
+fn delete_vehicle(state: State<AppState>, vehicle_id: i64) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db.delete_vehicle(vehicle_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn update_vehicle(
+    state: State<AppState>,
+    vehicle_id: i64,
+    brand: String,
+    model: String,
+    year: i32,
+    vehicle_type: String,
+    fuel_tank_capacity: Option<f64>,
+    battery_capacity: Option<f64>,
+) -> Result<(), String> {
+    let vehicle_type = match vehicle_type.as_str() {
+        "Fuel" => VehicleType::Fuel,
+        "Electric" => VehicleType::Electric,
+        "Hybrid" => VehicleType::Hybrid,
+        _ => return Err("Invalid vehicle type".to_string()),
+    };
+
+    let db = state.db.lock().unwrap();
+    db.update_vehicle(vehicle_id, brand, model, year, vehicle_type, fuel_tank_capacity, battery_capacity)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn add_fuel_record(
     state: State<AppState>,
     vehicle_id: i64,
@@ -327,6 +356,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             add_vehicle,
             get_all_vehicles,
+            delete_vehicle,
+            update_vehicle,
             add_fuel_record,
             add_charging_record,
             get_fuel_records,

@@ -64,6 +64,69 @@ impl Database {
         Ok(vehicles)
     }
 
+    pub fn delete_vehicle(&self, vehicle_id: i64) -> Result<(), DbError> {
+        // 删除车辆的所有加油记录
+        self.conn.execute(
+            "DELETE FROM fuel_records WHERE vehicle_id = ?1",
+            [vehicle_id],
+        )?;
+
+        // 删除车辆的所有充电记录
+        self.conn.execute(
+            "DELETE FROM charging_records WHERE vehicle_id = ?1",
+            [vehicle_id],
+        )?;
+
+        // 删除车辆的所有保养记录
+        self.conn.execute(
+            "DELETE FROM maintenance_records WHERE vehicle_id = ?1",
+            [vehicle_id],
+        )?;
+
+        // 删除车辆本身
+        self.conn.execute(
+            "DELETE FROM vehicles WHERE id = ?1",
+            [vehicle_id],
+        )?;
+
+        Ok(())
+    }
+
+    pub fn update_vehicle(
+        &self,
+        vehicle_id: i64,
+        brand: String,
+        model: String,
+        year: i32,
+        vehicle_type: VehicleType,
+        fuel_tank_capacity: Option<f64>,
+        battery_capacity: Option<f64>,
+    ) -> Result<(), DbError> {
+        let vehicle_type_str = match vehicle_type {
+            VehicleType::Fuel => "Fuel",
+            VehicleType::Electric => "Electric",
+            VehicleType::Hybrid => "Hybrid",
+        };
+
+        self.conn.execute(
+            "UPDATE vehicles SET brand = ?1, model = ?2, year = ?3, vehicle_type = ?4,
+             fuel_tank_capacity = ?5, battery_capacity = ?6, updated_at = ?7
+             WHERE id = ?8",
+            rusqlite::params![
+                brand,
+                model,
+                year,
+                vehicle_type_str,
+                fuel_tank_capacity,
+                battery_capacity,
+                Utc::now().to_rfc3339(),
+                vehicle_id,
+            ],
+        )?;
+
+        Ok(())
+    }
+
     /// 添加加油记录
     pub fn add_fuel_record(&self, record: &FuelRecord) -> Result<i64, DbError> {
         let fuel_type_str = match record.fuel_type {

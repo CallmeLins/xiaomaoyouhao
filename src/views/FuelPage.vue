@@ -2,18 +2,10 @@
 import { ref, onMounted } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { useDialog } from '../composables/useDialog';
+import { useCurrentVehicle } from '../composables/useCurrentVehicle';
 
 const { showSuccess, showError } = useDialog();
-
-interface Vehicle {
-  id: number;
-  brand: string;
-  model: string;
-  vehicle_type: string;
-}
-
-const vehicles = ref<Vehicle[]>([]);
-const selectedVehicleId = ref<number | null>(null);
+const { getCurrentVehicle } = useCurrentVehicle();
 
 const formData = ref({
   date: new Date().toISOString().split('T')[0],
@@ -26,18 +18,6 @@ const formData = ref({
   notes: '',
 });
 
-async function loadVehicles() {
-  try {
-    const list = await invoke('get_all_vehicles');
-    vehicles.value = (list as Vehicle[]).filter(v => v.vehicle_type !== 'Electric');
-    if (vehicles.value.length > 0) {
-      selectedVehicleId.value = vehicles.value[0].id;
-    }
-  } catch (error) {
-    showError('加载车辆失败');
-  }
-}
-
 function calculateTotalCost() {
   const volume = parseFloat(formData.value.volume);
   const price = parseFloat(formData.value.price);
@@ -47,14 +27,16 @@ function calculateTotalCost() {
 }
 
 async function submitRecord() {
-  if (!selectedVehicleId.value) {
-    showError('请选择车辆');
+  const vehicleId = getCurrentVehicle();
+
+  if (!vehicleId) {
+    showError('请先在设置中选择车辆');
     return;
   }
 
   try {
     await invoke('add_fuel_record', {
-      vehicleId: selectedVehicleId.value,
+      vehicleId: vehicleId,
       date: formData.value.date,
       mileage: parseFloat(formData.value.mileage),
       volume: parseFloat(formData.value.volume),
@@ -68,7 +50,7 @@ async function submitRecord() {
     showSuccess('添加成功');
     resetForm();
   } catch (error) {
-    showError('添加失败');
+    showError('添加失败: ' + error);
   }
 }
 
@@ -85,34 +67,13 @@ function resetForm() {
   };
 }
 
-onMounted(() => {
-  loadVehicles();
-});
 </script>
 
 <template>
   <f7-page name="fuel">
     <f7-navbar title="添加油耗记录" />
-    
-    <f7-block-title class="text-sm">选择车辆</f7-block-title>
-    <f7-list no-hairlines-md>
-      <f7-list-item
-        v-if="vehicles.length === 0"
-        title="暂无车辆"
-        class="text-gray-500 text-sm"
-      />
-      <f7-list-item
-        v-for="vehicle in vehicles"
-        :key="vehicle.id"
-        :title="`${vehicle.brand} ${vehicle.model}`"
-        radio
-        :checked="selectedVehicleId === vehicle.id"
-        @change="selectedVehicleId = vehicle.id"
-        class="text-sm"
-      />
-    </f7-list>
 
-    <f7-block-title class="text-sm">加油信息</f7-block-title>
+    <f7-block-title>加油信息</f7-block-title>
     <f7-list no-hairlines-md>
       <f7-list-input
         label="日期"

@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
+import { useCurrentVehicle } from '../composables/useCurrentVehicle';
+import { f7 } from 'framework7-vue';
 import { Line } from 'vue-chartjs';
 import {
   Chart as ChartJS,
@@ -23,114 +25,259 @@ ChartJS.register(
   Legend
 );
 
+const { getCurrentVehicle } = useCurrentVehicle();
+
 interface FuelRecord {
   id: number;
-  date: string;
+  created_at: string;
   mileage: number;
-  volume: number;
-  price: number;
-  total_cost: number;
+  liters: number;
+  price_per_liter: number;
+  amount: number;
   fuel_type: string;
   is_full_tank: boolean;
-  notes?: string;
+  note?: string;
 }
 
-interface Vehicle {
-  id: number;
-  brand: string;
-  model: string;
-  vehicle_type: string;
-}
-
-const vehicles = ref<Vehicle[]>([]);
-const selectedVehicleId = ref<number | null>(null);
 const records = ref<FuelRecord[]>([]);
 const showChart = ref(false);
-
-async function loadVehicles() {
-  try {
-    const list = await invoke('get_all_vehicles');
-    vehicles.value = list as Vehicle[];
-    if (vehicles.value.length > 0) {
-      selectedVehicleId.value = vehicles.value[0].id;
-      await loadRecords();
-    }
-  } catch (error) {
-    console.error('加载车辆失败:', error);
-  }
-}
+const showEditSheet = ref(false);
+const editingRecord = ref<FuelRecord | null>(null);
 
 async function loadRecords() {
-  if (!selectedVehicleId.value) return;
+  const vehicleId = getCurrentVehicle();
+  if (!vehicleId) {
+    records.value = [];
+    return;
+  }
 
   try {
     const list = await invoke('get_fuel_records', {
-      vehicleId: selectedVehicleId.value
+      vehicleId: vehicleId
     });
     records.value = (list as FuelRecord[]).sort((a, b) =>
-      new Date(b.date).getTime() - new Date(a.date).getTime()
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
   } catch (error) {
     console.error('加载记录失败:', error);
+    records.value = [];
   }
 }
 
+async function addTestData() {
+  const vehicleId = getCurrentVehicle();
+  if (!vehicleId) {
+    f7.dialog.alert('请先在设置中选择车辆');
+    return;
+  }
+
+  try {
+    await invoke('add_test_fuel_records', {
+      vehicleId: vehicleId
+    });
+    await loadRecords();
+    f7.toast.create({
+      text: '测试数据添加成功',
+      position: 'center',
+      closeTimeout: 2000,
+    }).open();
+  } catch (error) {
+    f7.dialog.alert('添加测试数据失败: ' + error);
+  }
+}
+
+async function deleteRecord(recordId: number) {
+  try {
+    await invoke('delete_fuel_record', {
+      recordId: recordId
+    });
+    await loadRecords();
+    f7.toast.create({
+      text: '删除成功',
+      position: 'center',
+      closeTimeout: 2000,
+    }).open();
+  } catch (error) {
+    f7.dialog.alert('删除失败: ' + error);
+  }
+}
+
+async function updateRecord() {
+  if (!editingRecord.value) return;
+
+  // 自动计算总价
+  editingRecord.value.amount = editingRecord.value.liters * editingRecord.value.price_per_liter;
+
+  try {
+    await invoke('update_fuel_record', {
+      recordId: editingRecord.value.id,
+      fuelType: editingRecord.value.fuel_type,
+      pricePerLiter: editingRecord.value.price_per_liter,
+      amount: editingRecord.value.amount,
+      liters: editingRecord.value.liters,
+      mileage: editingRecord.value.mileage,
+      isFullTank: editingRecord.value.is_full_tank,
+      note: editingRecord.value.note || null,
+    });
+    showEditSheet.value = false;
+    await loadRecords();
+    f7.toast.create({
+      text: '修改成功',
+      position: 'center',
+      closeTimeout: 2000,
+    }).open();
+  } catch (error) {
+    f7.dialog.alert('修改失败: ' + error);
+  }
+}
+
+function showRecordActions(record: FuelRecord) {
+  f7.actions.create({
+    buttons: [
+      [
+        {
+          text: '修改记录',
+          onClick: () => {
+            editingRecord.value = { ...record };
+            showEditSheet.value = true;
+          }
+        },
+        {
+          text: '删除记录',
+          color: 'red',
+          onClick: () => {
+            f7.dialog.confirm(
+              '确定要删除这条记录吗？',
+              '删除记录',
+              async () => {
+                await deleteRecord(record.id);
+              }
+            );
+          }
+        }
+      ],
+      [
+        {
+          text: '取消',
+        }
+      ]
+    ]
+  }).open();
+}
+
 const totalExpense = computed(() => {
-  return records.value.reduce((sum, r) => sum + r.total_cost, 0).toFixed(2);
+  return records.value.reduce((sum, r) => sum + r.amount, 0).toFixed(2);
+});
+
+// 计算油耗数据（百公里油耗）
+const consumptionData = computed(() => {
+  const result: { date: string; consumption: number }[] = [];
+
+  for (let i = 1; i < records.value.length; i++) {
+    const current = records.value[i];
+    const previous = records.value[i - 1];
+
+    if (current.is_full_tank && previous.is_full_tank) {
+      const distance = previous.mileage - current.mileage;
+      if (distance > 0) {
+        const consumption = (current.liters / distance) * 100;
+        result.push({
+          date: current.created_at.split('T')[0],
+          consumption: parseFloat(consumption.toFixed(2))
+        });
+      }
+    }
+  }
+
+  return result.reverse();
 });
 
 const chartData = computed(() => {
-  const sortedRecords = [...records.value].reverse();
+  // 只取最近7条记录
+  const recentRecords = [...records.value].slice(0, 7).reverse();
+  const recentConsumption = consumptionData.value.slice(-7);
+
   return {
-    labels: sortedRecords.map(r => r.date),
-    datasets: [{
-      label: '花费金额(元)',
-      data: sortedRecords.map(r => r.total_cost),
-      borderColor: '#0ea5e9',
-      backgroundColor: 'rgba(14, 165, 233, 0.1)',
-      tension: 0.3,
-    }]
+    labels: recentRecords.map(r => r.created_at.split('T')[0]),
+    datasets: [
+      {
+        label: '花费金额(元)',
+        data: recentRecords.map(r => r.amount),
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.3,
+        yAxisID: 'y',
+      },
+      {
+        label: '油耗(L/100km)',
+        data: recentRecords.map(r => {
+          const found = recentConsumption.find(c => c.date === r.created_at.split('T')[0]);
+          return found ? found.consumption : null;
+        }),
+        borderColor: '#ef4444',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        tension: 0.3,
+        yAxisID: 'y1',
+      }
+    ]
   };
 });
 
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
+  interaction: {
+    mode: 'index' as const,
+    intersect: false,
+  },
   plugins: {
-    legend: { display: false },
+    legend: {
+      display: true,
+      position: 'top' as const,
+    },
     title: { display: false }
   },
   scales: {
-    y: { beginAtZero: true }
+    y: {
+      type: 'linear' as const,
+      display: true,
+      position: 'left' as const,
+      title: {
+        display: true,
+        text: '花费(元)'
+      }
+    },
+    y1: {
+      type: 'linear' as const,
+      display: true,
+      position: 'right' as const,
+      title: {
+        display: true,
+        text: '油耗(L/100km)'
+      },
+      grid: {
+        drawOnChartArea: false,
+      },
+    },
   }
 };
 
 onMounted(() => {
-  loadVehicles();
+  loadRecords();
 });
 </script>
 
 <template>
   <f7-page name="expense">
     <f7-navbar title="花费记录" />
-    
-    <f7-block-title class="text-sm">选择车辆</f7-block-title>
-    <f7-list no-hairlines-md>
-      <f7-list-item
-        v-for="vehicle in vehicles"
-        :key="vehicle.id"
-        :title="`${vehicle.brand} ${vehicle.model}`"
-        radio
-        :checked="selectedVehicleId === vehicle.id"
-        @change="selectedVehicleId = vehicle.id; loadRecords()"
-        class="text-sm"
-      />
-    </f7-list>
 
-    <f7-block-title class="text-sm">
+    <f7-block-title>
       总花费: ¥{{ totalExpense }}
-      <f7-button small fill @click="showChart = !showChart" class="ml-2 text-xs">
+      <f7-button small fill @click="showChart = !showChart" class="ml-2">
         {{ showChart ? '隐藏图表' : '显示图表' }}
+      </f7-button>
+      <f7-button small @click="addTestData" class="ml-2">
+        添加测试数据
       </f7-button>
     </f7-block-title>
 
@@ -150,16 +297,69 @@ onMounted(() => {
       <f7-list-item
         v-for="record in records"
         :key="record.id"
-        :title="`¥${record.total_cost.toFixed(2)}`"
-        :subtitle="`${record.volume}L × ¥${record.price}/L`"
-        :text="`里程: ${record.mileage}km | ${record.date}`"
-        class="text-sm"
+        :title="`¥${record.amount.toFixed(2)}`"
+        :subtitle="`${record.liters}L × ¥${record.price_per_liter.toFixed(2)}/L`"
+        :text="`里程: ${record.mileage}km | ${record.created_at.split('T')[0]}`"
+        link
+        @click="showRecordActions(record)"
       >
         <template #after>
-          <f7-badge v-if="record.is_full_tank" color="green" class="text-xs">满</f7-badge>
+          <f7-badge v-if="record.is_full_tank" color="green">满</f7-badge>
         </template>
       </f7-list-item>
     </f7-list>
+
+    <f7-sheet
+      :opened="showEditSheet"
+      @sheet:closed="showEditSheet = false"
+    >
+      <f7-toolbar>
+        <div class="left"></div>
+        <div class="right">
+          <f7-link sheet-close>关闭</f7-link>
+        </div>
+      </f7-toolbar>
+
+      <f7-page-content>
+        <f7-block-title>修改记录</f7-block-title>
+        <f7-list v-if="editingRecord" no-hairlines-md>
+          <f7-list-input
+            label="里程(km)"
+            type="number"
+            :value="editingRecord.mileage"
+            @input="editingRecord.mileage = parseFloat($event.target.value)"
+          />
+          <f7-list-input
+            label="加油量(L)"
+            type="number"
+            step="0.01"
+            :value="editingRecord.liters"
+            @input="editingRecord.liters = parseFloat($event.target.value); editingRecord.amount = editingRecord.liters * editingRecord.price_per_liter"
+          />
+          <f7-list-input
+            label="单价(元/L)"
+            type="number"
+            step="0.01"
+            :value="editingRecord.price_per_liter"
+            @input="editingRecord.price_per_liter = parseFloat($event.target.value); editingRecord.amount = editingRecord.liters * editingRecord.price_per_liter"
+          />
+          <f7-list-input
+            label="总价(元)"
+            type="number"
+            step="0.01"
+            :value="editingRecord.amount"
+            readonly
+          />
+          <f7-list-item title="是否加满">
+            <f7-toggle :checked="editingRecord.is_full_tank" @toggle:change="editingRecord.is_full_tank = $event" />
+          </f7-list-item>
+        </f7-list>
+
+        <f7-block>
+          <f7-button fill @click="updateRecord">保存修改</f7-button>
+        </f7-block>
+      </f7-page-content>
+    </f7-sheet>
 
     <f7-toolbar tabbar bottom>
       <f7-link href="/" text="油耗" />
