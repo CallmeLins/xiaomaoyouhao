@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Alert, AlertDescription } from './ui/alert';
 import { Cloud, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { WebDAVClient } from '../utils/webdav';
 
 interface WebDAVConfig {
   url: string;
@@ -27,7 +28,7 @@ export function WebDAVSettings({ open, onOpenChange, onConfigured }: WebDAVSetti
       url: '',
       username: '',
       password: '',
-      path: '/fuelrecords',
+      path: '',
     };
   });
 
@@ -43,19 +44,27 @@ export function WebDAVSettings({ open, onOpenChange, onConfigured }: WebDAVSetti
     setTestStatus('testing');
     setErrorMessage('');
 
-    // 模拟WebDAV连接测试
-    setTimeout(() => {
-      const success = Math.random() > 0.3; // 模拟70%成功率
-      
-      if (success) {
+    try {
+      const client = new WebDAVClient(config);
+      const result = await client.testConnection();
+
+      if (result.success) {
         setTestStatus('success');
         toast.success('WebDAV连接测试成功！');
       } else {
         setTestStatus('error');
-        setErrorMessage('无法连接到WebDAV服务器，请检查URL、用户名和密码');
+        const errorMsg = result.error || '无法连接到WebDAV服务器，请检查URL、用户名和密码';
+        setErrorMessage(errorMsg);
         toast.error('连接测试失败');
+        console.error('WebDAV test failed:', errorMsg);
       }
-    }, 2000);
+    } catch (error) {
+      setTestStatus('error');
+      const errorMsg = '连接测试出错：' + (error as Error).message;
+      setErrorMessage(errorMsg);
+      toast.error('连接测试失败');
+      console.error('WebDAV test error:', error);
+    }
   };
 
   const handleSave = () => {
@@ -134,15 +143,15 @@ export function WebDAVSettings({ open, onOpenChange, onConfigured }: WebDAVSetti
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="path">同步路径</Label>
+            <Label htmlFor="path">同步路径（可选）</Label>
             <Input
               id="path"
-              placeholder="/fuelrecords"
+              placeholder="留空使用默认路径 xiaomaoyouhao"
               value={config.path}
               onChange={(e) => setConfig({ ...config, path: e.target.value })}
             />
             <p className="text-xs text-gray-500">
-              数据将同步到此目录，留空则使用根目录
+              留空则使用默认文件夹 xiaomaoyouhao，或自定义路径如 myfolder
             </p>
           </div>
 

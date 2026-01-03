@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Fuel, DollarSign, Settings } from 'lucide-react';
@@ -7,6 +7,7 @@ import { ExpenseTab } from './components/ExpenseTab';
 import { SettingsTab } from './components/SettingsTab';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
+import { WebDAVSyncManager } from './utils/syncManager';
 
 export interface FuelRecord {
   id: string;
@@ -48,6 +49,35 @@ export default function App() {
     const saved = localStorage.getItem('darkMode');
     return saved === 'true';
   });
+
+  // WebDAV 同步管理器
+  const syncManager = useRef<WebDAVSyncManager | null>(null);
+
+  // 初始化同步管理器（只在挂载时执行一次）
+  useEffect(() => {
+    console.log('检查 WebDAV 配置...');
+    const config = localStorage.getItem('webdavConfig');
+    const autoSync = localStorage.getItem('autoSync');
+
+    console.log('WebDAV config:', config ? '已配置' : '未配置');
+    console.log('AutoSync:', autoSync);
+
+    if (config && autoSync === 'true') {
+      console.log('初始化 WebDAV 同步管理器...');
+      syncManager.current = new WebDAVSyncManager();
+      syncManager.current.startAutoSync(
+        () => records,
+        () => vehicles
+      );
+      console.log('同步管理器已启动');
+    } else {
+      console.log('同步管理器未启动，原因:', !config ? '未配置' : 'autoSync未启用');
+    }
+
+    return () => {
+      syncManager.current?.stopAutoSync();
+    };
+  }, []); // 空依赖数组，只在挂载时执行
 
   // 从后端加载记录
   useEffect(() => {
@@ -106,6 +136,17 @@ export default function App() {
       };
       await invoke('add_fuel_record', { record: newRecord });
       await loadRecords();
+
+      // 触发延迟同步
+      console.log('触发延迟同步...');
+      console.log('syncManager.current:', syncManager.current);
+      if (syncManager.current) {
+        syncManager.current.scheduleSync(() => records, () => vehicles);
+        console.log('已调用 scheduleSync');
+      } else {
+        console.log('syncManager.current 为 null，未触发同步');
+      }
+
       return true;
     } catch (error) {
       console.error('Failed to add record:', error);
@@ -117,6 +158,9 @@ export default function App() {
     try {
       await invoke('delete_fuel_record', { id });
       await loadRecords();
+
+      // 触发延迟同步
+      syncManager.current?.scheduleSync(() => records, () => vehicles);
     } catch (error) {
       console.error('Failed to delete record:', error);
     }
@@ -126,6 +170,9 @@ export default function App() {
     try {
       await invoke('update_fuel_record', { record: updatedRecord });
       await loadRecords();
+
+      // 触发延迟同步
+      syncManager.current?.scheduleSync(() => records, () => vehicles);
     } catch (error) {
       console.error('Failed to update record:', error);
     }
@@ -214,7 +261,7 @@ export default function App() {
           </TabsContent>
 
           <TabsContent value="expense" className="p-4">
-            <ExpenseTab records={records} onDeleteRecord={deleteRecord} onUpdateRecord={updateRecord} />
+            <ExpenseTab records={records} vehicles={vehicles} onDeleteRecord={deleteRecord} onUpdateRecord={updateRecord} />
           </TabsContent>
 
           <TabsContent value="settings" className="p-4">

@@ -31,14 +31,17 @@ export function SettingsTab({ darkMode, onDarkModeChange, vehicles, currentVehic
   });
   const [currentView, setCurrentView] = useState<'main' | 'vehicle' | 'ai' | 'about'>('main');
   const [webdavDialogOpen, setWebdavDialogOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const handleSyncToggle = (checked: boolean) => {
     const config = localStorage.getItem('webdavConfig');
     if (checked && !config) {
+      // 如果没有配置，打开配置对话框
       setWebdavDialogOpen(true);
       return;
     }
     setAutoSync(checked);
+    localStorage.setItem('autoSync', checked.toString());
     if (checked) {
       toast.success('自动同步已启用');
     } else {
@@ -46,8 +49,14 @@ export function SettingsTab({ darkMode, onDarkModeChange, vehicles, currentVehic
     }
   };
 
+  const handleSyncClick = () => {
+    // 点击区域时打开配置对话框
+    setWebdavDialogOpen(true);
+  };
+
   const handleWebDAVConfigured = () => {
     setAutoSync(true);
+    localStorage.setItem('autoSync', 'true');
     toast.success('WebDAV配置完成，已启用自动同步');
   };
 
@@ -115,12 +124,13 @@ export function SettingsTab({ darkMode, onDarkModeChange, vehicles, currentVehic
       title: '数据',
       icon: Cloud,
       items: [
-        { 
-          label: '自动同步', 
-          description: '自动备份数据到云端 (WebDAV)', 
+        {
+          label: '自动同步',
+          description: '自动备份数据到云端 (WebDAV)',
           hasSwitch: true,
           switchValue: autoSync,
           onSwitchChange: handleSyncToggle,
+          onClick: handleSyncClick,
         },
       ],
     },

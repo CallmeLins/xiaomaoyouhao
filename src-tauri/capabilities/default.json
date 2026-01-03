@@ -5,6 +5,18 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default"
+    "opener:default",
+    "http:default",
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        {
+          "url": "https://*/*"
+        },
+        {
+          "url": "http://*/*"
+        }
+      ]
+    }
   ]
 }

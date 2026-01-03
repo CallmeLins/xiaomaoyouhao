@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { FuelRecord } from '../App';
+import { FuelRecord, Vehicle } from '../App';
 import { DollarSign, Droplet, TrendingUp, Calendar, Download, Upload, MoreVertical } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
@@ -16,11 +16,12 @@ import {
 
 interface ExpenseTabProps {
   records: FuelRecord[];
+  vehicles: Vehicle[];
   onDeleteRecord: (id: string) => void;
   onUpdateRecord?: (record: FuelRecord) => void;
 }
 
-export function ExpenseTab({ records, onDeleteRecord, onUpdateRecord }: ExpenseTabProps) {
+export function ExpenseTab({ records, vehicles, onDeleteRecord, onUpdateRecord }: ExpenseTabProps) {
   const [editingRecord, setEditingRecord] = useState<FuelRecord | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -88,24 +89,29 @@ export function ExpenseTab({ records, onDeleteRecord, onUpdateRecord }: ExpenseT
 
     // CSV表头
     const headers = [
-      'ID', '车辆ID', '日期', '里程(km)', '加油量(L)',
+      'ID', '车辆ID', '车辆品牌', '车辆型号', '日期', '里程(km)', '加油量(L)',
       '单价(元/L)', '总价(元)', '油品类型', '是否加满', '备注', '创建时间'
     ];
 
     // CSV数据行
-    const rows = data.map(record => [
-      record.id,
-      record.vehicleId,
-      record.date,
-      record.mileage,
-      record.fuelAmount,
-      record.unitPrice,
-      record.totalPrice,
-      record.fuelType,
-      record.isFull ? '是' : '否',
-      record.note || '',
-      record.createdAt
-    ]);
+    const rows = data.map(record => {
+      const vehicle = vehicles.find(v => v.id === record.vehicleId);
+      return [
+        record.id,
+        record.vehicleId,
+        vehicle?.brand || '未知',
+        vehicle?.model || '未知',
+        record.date,
+        record.mileage,
+        record.fuelAmount,
+        record.unitPrice,
+        record.totalPrice,
+        record.fuelType,
+        record.isFull ? '是' : '否',
+        record.note || '',
+        record.createdAt
+      ];
+    });
 
     // 组合CSV内容
     const csvContent = [
@@ -148,7 +154,23 @@ export function ExpenseTab({ records, onDeleteRecord, onUpdateRecord }: ExpenseT
       // 处理CSV中的引号
       const values = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/^"|"$/g, '').trim()) || [];
 
-      if (values.length >= 11) {
+      if (values.length >= 13) {
+        // 新格式：包含车辆品牌和型号
+        records.push({
+          id: values[0],
+          vehicleId: values[1],
+          date: values[4],
+          mileage: parseFloat(values[5]),
+          fuelAmount: parseFloat(values[6]),
+          unitPrice: parseFloat(values[7]),
+          totalPrice: parseFloat(values[8]),
+          fuelType: values[9],
+          isFull: values[10] === '是',
+          note: values[11],
+          createdAt: values[12]
+        });
+      } else if (values.length >= 11) {
+        // 旧格式：不包含车辆品牌和型号
         records.push({
           id: values[0],
           vehicleId: values[1],

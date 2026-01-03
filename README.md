@@ -120,34 +120,6 @@ xiaomaoyouhao/
 - **macOS**: `~/Library/Application Support/com.xiaomaoyouhao.app/xiaomaoyouhao.db`
 - **Linux**: `~/.local/share/xiaomaoyouhao/xiaomaoyouhao.db`
 
-### 数据库结构
-
-#### vehicles 表（车辆信息）
-- id - 车辆唯一标识
-- brand - 品牌
-- model - 型号
-- year - 年份
-- displacement - 排量
-- fuel_type - 燃油类型
-- license_plate - 车牌号
-- purchase_date - 购买日期
-- note - 备注
-- created_at - 创建时间
-- updated_at - 更新时间
-
-#### fuel_records 表（油耗记录）
-- id - 记录唯一标识
-- vehicle_id - 关联车辆ID（外键）
-- date - 加油日期
-- mileage - 里程数
-- fuel_amount - 加油量
-- unit_price - 单价
-- total_price - 总价
-- fuel_type - 油品类型
-- is_full - 是否加满
-- note - 备注
-- created_at - 创建时间
-
 ## 🎯 使用指南
 
 ### 首次使用
@@ -208,6 +180,35 @@ ID,车辆ID,日期,里程(km),加油量(L),单价(元/L),总价(元),油品类�
 - 导入的记录必须关联到已存在的车辆ID
 - 建议定期导出数据进行备份
 
+### WebDAV 云端同步
+
+#### 配置 WebDAV
+1. 进入"设置"标签
+2. 点击"自动同步"区域打开配置对话框
+3. 填写 WebDAV 服务器信息：
+   - **服务器地址**：如 `https://dav.jianguoyun.com/dav/`
+   - **用户名**：您的邮箱或用户名
+   - **密码**：应用专用密码（坚果云需在网页端生成）
+   - **同步路径**：留空使用默认文件夹 `xiaomaoyouhao`，或自定义路径
+4. 点击"测试连接"确认配置正确
+5. 保存配置
+
+#### 同步策略
+- **变化时延迟同步**：数据变化后 30 秒自动同步
+- **定时全量同步**：每小时自动同步一次
+- **手动控制**：可随时通过开关启用/禁用自动同步
+
+#### 支持的 WebDAV 服务
+- 坚果云
+- Nextcloud
+- ownCloud
+- 其他标准 WebDAV 服务
+
+#### 同步文件
+- 文件名：`fuel-records-backup.csv`
+- 格式：CSV（包含车辆信息和油耗记录）
+- 位置：配置的路径下（默认 `xiaomaoyouhao` 文件夹）
+
 ## 🔧 开发指南
 
 ### 推荐 IDE 设置
@@ -237,7 +238,7 @@ RUST_LOG=debug npm run tauri dev
 ## 📝 待实现功能
 
 - [x] 批量导入/导出功能（已完成 - 支持 CSV/JSON 格式）
-- [ ] WebDAV 云端同步
+- [x] WebDAV 云端同步（已完成 - 支持坚果云、Nextcloud 等）
 - [ ] AI 智能分析和建议
 - [ ] 多车辆对比分析
 - [ ] 数据自动备份
