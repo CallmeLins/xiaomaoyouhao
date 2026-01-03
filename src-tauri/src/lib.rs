@@ -198,6 +198,40 @@ fn delete_vehicle(id: String, state: State<AppState>) -> Result<(), String> {
     Ok(())
 }
 
+// ========== 导入导出 API ==========
+
+// 批量导入油耗记录
+#[tauri::command]
+fn import_fuel_records(records: Vec<FuelRecord>, state: State<AppState>) -> Result<usize, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let mut count = 0;
+
+    for record in records {
+        let result = conn.execute(
+            "INSERT INTO fuel_records (id, vehicle_id, date, mileage, fuel_amount, unit_price, total_price, fuel_type, is_full, note, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            rusqlite::params![
+                record.id,
+                record.vehicle_id,
+                record.date,
+                record.mileage,
+                record.fuel_amount,
+                record.unit_price,
+                record.total_price,
+                record.fuel_type,
+                if record.is_full { 1 } else { 0 },
+                record.note,
+                record.created_at,
+            ],
+        );
+
+        if result.is_ok() {
+            count += 1;
+        }
+    }
+
+    Ok(count)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -221,7 +255,8 @@ pub fn run() {
             get_fuel_records,
             add_fuel_record,
             update_fuel_record,
-            delete_fuel_record
+            delete_fuel_record,
+            import_fuel_records
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

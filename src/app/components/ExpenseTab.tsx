@@ -82,51 +82,134 @@ export function ExpenseTab({ records, onDeleteRecord, onUpdateRecord }: ExpenseT
     setEditingRecord(null);
   };
 
+  // JSON转CSV
+  const jsonToCSV = (data: FuelRecord[]): string => {
+    if (data.length === 0) return '';
+
+    // CSV表头
+    const headers = [
+      'ID', '车辆ID', '日期', '里程(km)', '加油量(L)',
+      '单价(元/L)', '总价(元)', '油品类型', '是否加满', '备注', '创建时间'
+    ];
+
+    // CSV数据行
+    const rows = data.map(record => [
+      record.id,
+      record.vehicleId,
+      record.date,
+      record.mileage,
+      record.fuelAmount,
+      record.unitPrice,
+      record.totalPrice,
+      record.fuelType,
+      record.isFull ? '是' : '否',
+      record.note || '',
+      record.createdAt
+    ]);
+
+    // 组合CSV内容
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    return csvContent;
+  };
+
   const handleExport = () => {
     if (records.length === 0) {
       toast.error('没有可导出的记录');
       return;
     }
 
-    const dataStr = JSON.stringify(records, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    // 先转为JSON，再转为CSV
+    const csvContent = jsonToCSV(records);
+    const dataBlob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `fuel-records-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `fuel-records-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast.success('数据已导出');
+    toast.success('数据已导出为CSV格式');
+  };
+
+  // CSV转JSON
+  const csvToJSON = (csvText: string): FuelRecord[] => {
+    const lines = csvText.split('\n').filter(line => line.trim());
+    if (lines.length < 2) return [];
+
+    // 跳过表头，从第二行开始解析
+    const records: FuelRecord[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      // 处理CSV中的引号
+      const values = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/^"|"$/g, '').trim()) || [];
+
+      if (values.length >= 11) {
+        records.push({
+          id: values[0],
+          vehicleId: values[1],
+          date: values[2],
+          mileage: parseFloat(values[3]),
+          fuelAmount: parseFloat(values[4]),
+          unitPrice: parseFloat(values[5]),
+          totalPrice: parseFloat(values[6]),
+          fuelType: values[7],
+          isFull: values[8] === '是',
+          note: values[9],
+          createdAt: values[10]
+        });
+      }
+    }
+    return records;
   };
 
   const handleImport = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
-        const importedData = JSON.parse(e.target?.result as string);
-        if (Array.isArray(importedData)) {
-          // 这里需要通过props传递导入的数据
-          localStorage.setItem('fuelRecords', JSON.stringify(importedData));
-          toast.success(`成功导入 ${importedData.length} 条记录，请刷新页面`);
-          setTimeout(() => window.location.reload(), 1500);
+        const content = e.target?.result as string;
+        let importedData: FuelRecord[] = [];
+
+        // 判断文件类型并解析
+        if (file.name.endsWith('.csv')) {
+          importedData = csvToJSON(content);
+        } else if (file.name.endsWith('.json')) {
+          const jsonData = JSON.parse(content);
+          importedData = Array.isArray(jsonData) ? jsonData : [];
         } else {
-          toast.error('文件格式错误');
+          toast.error('不支持的文件格式，请使用CSV或JSON文件');
+          return;
         }
+
+        if (importedData.length === 0) {
+          toast.error('文件中没有有效数据');
+          return;
+        }
+
+        // 调用后端API批量导入
+        const { invoke } = await import('@tauri-apps/api/core');
+        const count = await invoke<number>('import_fuel_records', { records: importedData });
+
+        toast.success(`成功导入 ${count} 条记录，请刷新页面`);
+        setTimeout(() => window.location.reload(), 1500);
       } catch (error) {
-        toast.error('文件解析失败');
+        console.error('导入失败:', error);
+        toast.error('文件解析或导入失败');
       }
     };
     reader.readAsText(file);
-    
+
     // 重置input以便可以重复导入同一文件
     event.target.value = '';
   };
@@ -155,7 +238,7 @@ export function ExpenseTab({ records, onDeleteRecord, onUpdateRecord }: ExpenseT
       <input
         ref={fileInputRef}
         type="file"
-        accept=".json"
+        accept=".csv,.json"
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />
