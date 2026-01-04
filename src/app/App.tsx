@@ -234,7 +234,7 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="bg-white dark:bg-gray-800 min-h-screen">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 pb-8">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 pb-8 pt-13">
           <h1 className="text-2xl font-bold">小猫油耗</h1>
           <p className="text-blue-100 text-sm mt-1">记录每一滴油的价值</p>
         </div>
