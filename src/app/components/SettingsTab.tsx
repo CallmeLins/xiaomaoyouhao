@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { Vehicle } from '../App';
 
 type SettingItem =
-  | { label: string; description: string; hasSwitch: true; switchValue: boolean; onSwitchChange: (value: boolean) => void; action?: never; onClick?: never }
+  | { label: string; description: string; hasSwitch: true; switchValue: boolean; onSwitchChange: (value: boolean) => void; action?: never; onClick?: () => void }
   | { label: string; description: string; action: string; onClick?: () => void; hasSwitch?: never; switchValue?: never; onSwitchChange?: never };
 
 interface SettingsTabProps {
@@ -31,7 +31,6 @@ export function SettingsTab({ darkMode, onDarkModeChange, vehicles, currentVehic
   });
   const [currentView, setCurrentView] = useState<'main' | 'vehicle' | 'ai' | 'about'>('main');
   const [webdavDialogOpen, setWebdavDialogOpen] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   const handleSyncToggle = (checked: boolean) => {
     const config = localStorage.getItem('webdavConfig');

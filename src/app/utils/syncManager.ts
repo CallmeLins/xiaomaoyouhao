@@ -11,8 +11,8 @@ export interface SyncStatus {
 export class WebDAVSyncManager {
   private client: WebDAVClient | null = null;
   private config: WebDAVConfig | null = null;
-  private syncTimer: NodeJS.Timeout | null = null;
-  private debounceTimer: NodeJS.Timeout | null = null;
+  private syncTimer: number | null = null;
+  private debounceTimer: number | null = null;
   private status: SyncStatus = {
     lastSyncTime: null,
     isSyncing: false,
@@ -29,7 +29,9 @@ export class WebDAVSyncManager {
     const saved = localStorage.getItem('webdavConfig');
     if (saved) {
       this.config = JSON.parse(saved);
-      this.client = new WebDAVClient(this.config);
+      if (this.config) {
+        this.client = new WebDAVClient(this.config);
+      }
     }
   }
 
