@@ -99,7 +99,7 @@ export function VehicleManagement({ onBack, vehicles, currentVehicleId, onCurren
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-16">
       <div className="flex items-center justify-between">
         <Button variant="ghost" onClick={onBack}>
           <ChevronLeft className="w-4 h-4 mr-2" />
@@ -192,7 +192,7 @@ export function VehicleManagement({ onBack, vehicles, currentVehicleId, onCurren
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-lg dialog-scrollable">
           <DialogHeader>
             <DialogTitle>{editingVehicle ? '编辑车辆' : '添加车辆'}</DialogTitle>
           </DialogHeader>

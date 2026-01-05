@@ -48,3 +48,42 @@ button:active {
 * {
   scroll-behavior: smooth;
 }
+
+/* Custom scrollbar styles for dialog content */
+.dialog-scrollable {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.dialog-scrollable::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dialog-scrollable::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 0 8px 8px 0;
+}
+
+.dialog-scrollable::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.dialog-scrollable::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.7);
+}
+
+/* Dark mode scrollbar */
+.dark .dialog-scrollable {
+  scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
+}
+
+.dark .dialog-scrollable::-webkit-scrollbar-thumb {
+  background-color: rgba(75, 85, 99, 0.5);
+}
+
+.dark .dialog-scrollable::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(75, 85, 99, 0.7);
+}

@@ -143,7 +143,7 @@ export function SettingsTab({ darkMode, onDarkModeChange, vehicles, currentVehic
           action: '查看',
           onClick: () => setCurrentView('about'),
         },
-        { label: '版本信息', description: 'v2.0.0', action: '' },
+        { label: '版本信息', description: 'v2.1.0', action: '' },
       ],
     },
   ];
@@ -164,7 +164,13 @@ export function SettingsTab({ darkMode, onDarkModeChange, vehicles, currentVehic
                 <div
                   key={itemIndex}
                   className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                  onClick={item.onClick}
+                  onClick={(e) => {
+                    // 如果点击的是 Switch，不触发整行的 onClick
+                    if (item.hasSwitch && (e.target as HTMLElement).closest('[role="switch"]')) {
+                      return;
+                    }
+                    item.onClick?.();
+                  }}
                 >
                   <div className="flex-1">
                     <div className="font-medium">{item.label}</div>

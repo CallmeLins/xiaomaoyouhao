@@ -31,7 +31,7 @@ export function AboutAuthor({ onBack }: AboutAuthorProps) {
         </div>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 pb-16">
         {/* 作者信息卡片 */}
         <Card className="overflow-hidden">
           <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-24"></div>
@@ -154,11 +154,11 @@ export function AboutAuthor({ onBack }: AboutAuthorProps) {
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-500">当前版本</span>
-              <span className="font-medium">v2.0.0</span>
+              <span className="font-medium">v2.1.0</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">发布日期</span>
-              <span>2026-01-03</span>
+              <span>2026-01-05</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">构建技术</span>
@@ -177,6 +177,19 @@ export function AboutAuthor({ onBack }: AboutAuthorProps) {
           <CardHeader>
             <CardTitle>更新日志</CardTitle>
           </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold">v2.1.0</span>
+                <span className="text-xs text-gray-400">2026-01-05</span>
+              </div>
+              <ul className="text-sm text-gray-600 space-y-1 ml-4">
+                <li>• tabbar 优化</li>
+                <li>• 增加弹窗滚动条</li>
+                <li>• 图标适配</li>
+              </ul>
+            </div>
+          </CardContent>
           <CardContent className="space-y-3">
             <div className="space-y-1">
               <div className="flex items-center gap-2">

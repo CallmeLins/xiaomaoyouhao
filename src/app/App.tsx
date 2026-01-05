@@ -232,39 +232,24 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="bg-white dark:bg-gray-800 min-h-screen">
+      <div className="bg-white dark:bg-gray-800 min-h-screen pb-16">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 pb-8 pt-13">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 pb-8">
           <h1 className="text-2xl font-bold">小猫油耗</h1>
           <p className="text-blue-100 text-sm mt-1">记录每一滴油的价值</p>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="fuel" className="w-full">
-          <TabsList className="w-full grid grid-cols-3 rounded-none sticky top-0 bg-white dark:bg-gray-800 shadow-sm z-10">
-            <TabsTrigger value="fuel" className="flex items-center gap-2">
-              <Fuel className="w-4 h-4" />
-              <span>油耗</span>
-            </TabsTrigger>
-            <TabsTrigger value="expense" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
-              <span>花费</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              <span>设置</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="fuel" className="p-4">
+          <TabsContent value="fuel" className="p-4 mt-0">
             <FuelRecordTab onAddRecord={addRecord} />
           </TabsContent>
 
-          <TabsContent value="expense" className="p-4">
+          <TabsContent value="expense" className="p-4 mt-0">
             <ExpenseTab records={records} vehicles={vehicles} onDeleteRecord={deleteRecord} onUpdateRecord={updateRecord} />
           </TabsContent>
 
-          <TabsContent value="settings" className="p-4">
+          <TabsContent value="settings" className="p-4 mt-0">
             <SettingsTab
               darkMode={darkMode}
               onDarkModeChange={setDarkMode}
@@ -276,6 +261,22 @@ export default function App() {
               onDeleteVehicle={deleteVehicle}
             />
           </TabsContent>
+
+          {/* 底部Tab栏 */}
+          <TabsList className="w-full grid grid-cols-3 rounded-none fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-[0_-2px_10px_rgba(0,0,0,0.1)] dark:shadow-[0_-2px_10px_rgba(0,0,0,0.3)] z-50 h-16 border-t dark:border-gray-700">
+            <TabsTrigger value="fuel" className="flex flex-col items-center gap-1 h-full data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400">
+              <Fuel className="w-5 h-5" />
+              <span className="text-xs">油耗</span>
+            </TabsTrigger>
+            <TabsTrigger value="expense" className="flex flex-col items-center gap-1 h-full data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400">
+              <DollarSign className="w-5 h-5" />
+              <span className="text-xs">花费</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex flex-col items-center gap-1 h-full data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400">
+              <Settings className="w-5 h-5" />
+              <span className="text-xs">设置</span>
+            </TabsTrigger>
+          </TabsList>
         </Tabs>
       </div>
       <Toaster />

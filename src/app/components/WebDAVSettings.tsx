@@ -86,7 +86,7 @@ export function WebDAVSettings({ open, onOpenChange, onConfigured }: WebDAVSetti
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto rounded-lg dialog-scrollable">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Cloud className="w-5 h-5 text-blue-600" />

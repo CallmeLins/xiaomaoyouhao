@@ -62,7 +62,7 @@ export function EditRecordDialog({ record, open, onOpenChange, onSave }: EditRec
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto rounded-lg dialog-scrollable">
         <DialogHeader>
           <DialogTitle className="text-xl">编辑加油记录</DialogTitle>
           <DialogDescription>
