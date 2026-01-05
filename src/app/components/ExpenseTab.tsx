@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Label, LabelList } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { FuelRecord, Vehicle } from '../App';
 import { DollarSign, Droplet, TrendingUp, Calendar, Download, Upload, MoreVertical } from 'lucide-react';
 import { Button } from './ui/button';
