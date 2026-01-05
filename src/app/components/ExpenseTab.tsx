@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Label, LabelList } from 'recharts';
 import { FuelRecord, Vehicle } from '../App';
 import { DollarSign, Droplet, TrendingUp, Calendar, Download, Upload, MoreVertical } from 'lucide-react';
 import { Button } from './ui/button';
@@ -307,14 +307,15 @@ export function ExpenseTab({ records, vehicles, onDeleteRecord, onUpdateRecord }
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chartData}>
+              <BarChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 5 }} barSize={10}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" style={{ fontSize: '12px' }} />
-                <YAxis style={{ fontSize: '12px' }} />
+                <YAxis hide />
                 <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="花费" stroke="#3b82f6" strokeWidth={2} />
-              </LineChart>
+                <Bar dataKey="花费" fill="#3b82f6" radius={[8, 8, 0, 0]}>
+                  <LabelList dataKey="花费" position="top" style={{ fontSize: '10px', fill: '#666' }} />
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -329,13 +330,14 @@ export function ExpenseTab({ records, vehicles, onDeleteRecord, onUpdateRecord }
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chartData}>
+              <LineChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" style={{ fontSize: '12px' }} />
-                <YAxis style={{ fontSize: '12px' }} />
+                <YAxis hide />
                 <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="加油量" stroke="#f97316" strokeWidth={2} />
+                <Line type="monotone" dataKey="加油量" stroke="#f97316" strokeWidth={2}>
+                  <LabelList dataKey="加油量" position="top" style={{ fontSize: '10px', fill: '#666' }} />
+                </Line>
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
