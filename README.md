@@ -25,6 +25,8 @@
 
 ## 🖼️ 应用截图
 
+![安卓app截图](./public/androidscreenshot.jpg)
+
 ### 油耗记录
 记录每次加油的详细信息，支持自动计算总价。
 
